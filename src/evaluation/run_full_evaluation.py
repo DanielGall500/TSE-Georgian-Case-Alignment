@@ -3,7 +3,7 @@ from datasets import load_dataset
 import pandas as pd
 import os
 
-OVERVIEW_OUTPUT_DIR = "./evaluation_results"
+OVERVIEW_OUTPUT_DIR = "../../evaluation_results"
 OVERVIEW_OUTPUT_FILENAME = "overview"
 OVERVIEW_OUTPUT_FULL_PATH = f"{OVERVIEW_OUTPUT_DIR}/{OVERVIEW_OUTPUT_FILENAME}.csv"
 DATASET_REPO = "DanielGallagherIRE/georgian-case-alignment"
@@ -103,12 +103,13 @@ def main():
                 evaluation_cols.extend(ungrammatical_cols)
 
                 task_dataset = load_dataset(DATASET_REPO, task)["train"].to_pandas()
+
                 print(task_dataset.head())
 
                 if task_type == "mlm":
-                    evaluation_types = ["token-level"]
+                    evaluation_types = ["sentence-level", "token-level"]
                 elif task_type == "ntp":
-                    evaluation_types = ["token-level", "sentence-level"]
+                    evaluation_types = ["sentence-level"]
                 else:
                     raise ValueError("Invalid task type.")
 
@@ -119,7 +120,7 @@ def main():
                         task_type=task_type,
                         evaluation_type=eval_type,
                         evaluation_cols=evaluation_cols,
-                        save_to=f"evaluation_results/{task_type}-{model}-{dataset_name}-{eval_type}.csv",
+                        save_to=f"{OVERVIEW_OUTPUT_DIR}/{task_type}-{model}-{dataset_name}-{eval_type}.csv",
                         device="cuda",
                     )
 
@@ -133,9 +134,6 @@ def main():
                     print(task)
                     print("====")
                     print("Avg Prob Grammatical: ", all_probs_grammatical.mean())
-                    for ug in all_probs_ungrammatical.keys():
-                        print(f"Avg Prob Ungrammatical {ug}: ", all_probs_ungrammatical[ug].mean())
-                            
 
                     accuracy = geval.get_accuracy(
                         f"p_{grammatical_col}", [f"p_{ug_col}" for ug_col in ungrammatical_cols]
@@ -153,6 +151,21 @@ def main():
                             [model_repo,task,eval_type,task_type,accuracy]
                         ], columns=["model", "task", "evaluation_type", "task_type", "accuracy"])
                     results_df.to_csv(OVERVIEW_OUTPUT_FULL_PATH, index=False)
+
+                    means = {}
+                    means[grammatical_col] = all_probs_grammatical.mean()
+                    for ungrammatical_col in all_probs_ungrammatical.keys():
+                        means[ungrammatical_col] = all_probs_ungrammatical[ungrammatical_col].mean()
+                    means["model"] = model
+                    means["repo"] = model_repo
+
+                    means_path = f"{OVERVIEW_OUTPUT_DIR}/means/{eval_type}-{task}.csv"
+                    if os.path.exists(means_path):
+                        means_df = pd.read_csv(means_path)
+                        means_df = means_df.append([means], ignore_index=True)
+                    else:
+                        means_df = pd.DataFrame([means])
+                    means_df.to_csv(means_path, index=False) 
 
 if __name__ == "__main__":
     main()
