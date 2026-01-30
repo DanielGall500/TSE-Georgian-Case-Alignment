@@ -2,8 +2,19 @@ from grewtse.pipeline import GrewTSEPipe
 import pandas as pd
 import os
 
-TREEBANKS_KARTULI = [
+"""
+This handles the creation of the minimal-pair syntactic tests from the Georgian Language Corpus (GLC) Treebank.
+For this to work, you need to have the GLC train, dev, and test datasets downloaded, an example of which shown below.
+
+The Grew-TSE pipeline generates the pairs based on the configuration provided.
+In each case, it will find sentences matching a construction C and change a single morphosyntactic feature.
+Full details and examples are shown in the paper attached to this work.
+
+The below code shows the full process, however for a simpler and more intuitive breakdown of what Grew-TSE is doing, please refer to its documentation at https://grew-tse.readthedocs.io/
+"""
+
 # all treebank files to be used for the minimal-pair generation
+TREEBANKS_KARTULI = [
     "./treebanks/ka_glc-ud-train.conllu",
     "./treebanks/ka_glc-ud-dev.conllu",
     "./treebanks/ka_glc-ud-test.conllu",
@@ -231,31 +242,36 @@ def main():
             task_prefix=task_prefix_s3
         )
 
-    all_intransitive_configs = [
+    all_intransitive_configs_nom = [
         config_in_to_erg,
         config_in_to_dat,
     ]
 
-    all_transitive_configs_s1 = [
+    all_transitive_configs_nom_dat = [
             config_trns_s1_subj_to_erg,
             config_trns_s1_subj_to_dat,
             config_trns_s1_obj_to_nom,
             config_trns_s1_obj_to_erg
     ]
 
-    all_transitive_configs_s2 = [
+    all_transitive_configs_erg_nom = [
             config_trns_s2_subj_to_nom,
             config_trns_s2_subj_to_dat,
             config_trns_s2_obj_to_erg,
             config_trns_s2_obj_to_dat
     ]
 
-    all_transitive_configs_s3 = [
+    all_transitive_configs_dat_nom = [
             config_trns_s3_subj_to_nom,
             config_trns_s3_subj_to_erg,
             config_trns_s3_obj_to_dat,
             config_trns_s3_obj_to_erg,
     ]
+
+    all_verbal_paradigm_configs = [all_intransitive_configs_nom,
+                   all_transitive_configs_nom_dat,
+                   all_transitive_configs_erg_nom,
+                   all_transitive_configs_dat_nom]
 
     results = {
         "task_name": [],
@@ -263,21 +279,23 @@ def main():
         "minimal_pairs_found": []
     }
 
-    for config in all_transitive_configs_s3:
-        print("Parsing...")
+    # run this for each of the configs to carry out the 
+    # process of generating minimal-pair sentences
+    # here the example for 
+    for verbal_paradigm_configs in all_verbal_paradigm_configs:
+        for config in verbal_paradigm_configs:
+            print("Parsing...")
 
-        task_name, structures_masked, minimal_pairs_found = run_config(config)
+            task_name, structures_masked, minimal_pairs_found = run_config(config)
 
-        results["task_name"].append(task_name)
-        results["structures_masked"].append(structures_masked)
-        results["minimal_pairs_found"].append(minimal_pairs_found)
-        print(f"Completed parsing {task_name}.")
-        print("----")
+            results["task_name"].append(task_name)
+            results["structures_masked"].append(structures_masked)
+            results["minimal_pairs_found"].append(minimal_pairs_found)
+            print(f"Completed parsing {task_name}.")
+            print("----")
 
-    results = pd.DataFrame(results)
-    results.to_csv(f"{OUTPUT_DIR}/meta.csv", mode='a')
-    print(results)
-
+        results = pd.DataFrame(results)
+        results.to_csv(f"{OUTPUT_DIR}/meta.csv", mode='a')
 
 if __name__ == "__main__":
     main()
