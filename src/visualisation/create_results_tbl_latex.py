@@ -1,15 +1,24 @@
 import pandas as pd
 
-df = pd.read_csv("updated_results.csv")
+EVAL_RESULTS_PATH = "./results"
+RESULTS_REFORMATTED_PATH = f"{EVAL_RESULTS_PATH}/vis/bar-chart-reformatted.csv"
+VIS_OUTPUT_PATH = "./vis/results-bar-chart.png"
+
+OVERVIEW_RESULTS_PATH = f"{EVAL_RESULTS_PATH}/overview.csv"
+
+df = pd.read_csv(OVERVIEW_RESULTS_PATH)
+
+print("====Creating Latex Table For Results====")
+print(df.head())
 
 task_order = [
-    "INTR-S1-NOM",
-    "S1-NOM",
-    "S1-DAT",
-    "S2-ERG",
-    "S2-NOM",
-    "S3-DAT",
-    "S3-NOM",
+    "intransitive-nom-subj",
+    "transitive-nom-dat-subj",
+    "transitive-nom-dat-obj",
+    "transitive-erg-nom-subj",
+    "transitive-erg-nom-obj",
+    "transitive-dat-nom-subj",
+    "transitive-dat-nom-obj",
 ]
 
 df["task"] = pd.Categorical(
@@ -31,18 +40,32 @@ def make_pivot(df):
         values="accuracy"
     )
 
+print(token_df)
+print("====")
+print(sent_df)
+
+# sent_df = sent_df[sent_df["model"] != "ai-forever/mGPT-1.3B-georgian"]
+# sent_df = sent_df[sent_df["model"] != "Kuduxaaa/gpt2-geo"]
+
+print(sent_df["model"].unique())
+
+print("Token-level Acc Avg: ", token_df["accuracy"].mean())
+print("Sentence-level Acc Avg: ", sent_df["accuracy"].mean())
+print("Difference: ", sent_df["accuracy"].mean() - token_df["accuracy"].mean())
+
 token_table = make_pivot(token_df)
 sent_table  = make_pivot(sent_df)
 
 def accuracy_to_cell(val):
     if pd.isna(val):
         return ""
-    intensity = int(val)   
+    intensity = int(val) -10 
     return rf"\cellcolor{{softgreen!{intensity}}} {val}"
 
 token_latex_df = token_table.applymap(accuracy_to_cell)
 sent_latex_df  = sent_table.applymap(accuracy_to_cell)
 
+"""
 combined = pd.concat([token_latex_df, sent_latex_df])
 combined = combined.to_latex(
     escape=False,
@@ -50,7 +73,7 @@ combined = combined.to_latex(
     multicolumn_format="c",
     header=True
 )
-
+"""
 token_latex = token_latex_df.to_latex(
     escape=False,
     multicolumn=True,
@@ -72,5 +95,4 @@ sent_latex = sent_latex_df.to_latex(
 print(token_latex)
 print("\n\n")
 print(sent_latex)
-# print(combined)
 

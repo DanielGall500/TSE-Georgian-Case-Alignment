@@ -14,7 +14,7 @@ from plotnine import (
     element_rect,
 )
 
-EVAL_RESULTS_PATH = "./remote/evaluation_results"
+EVAL_RESULTS_PATH = "./results"
 RESULTS_REFORMATTED_PATH = f"{EVAL_RESULTS_PATH}/vis/bar-chart-reformatted.csv"
 VIS_OUTPUT_PATH = "./vis/results-bar-chart.png"
 
